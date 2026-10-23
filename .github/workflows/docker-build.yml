@@ -23,9 +23,15 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}    
 
       - name: Build Docker Image
-        run: docker build -t my_app:${{ github.sha }} .
+        run: |
+          docker build \
+            -t my_app:${{ github.sha }} .
+            -t my_app:latest .
 
       - name: push Docker Image
         run: |
           docker tag my_app:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/my_app:${{ github.sha }} 
+          docker tag my_app:latest ${{ secrets.DOCKERHUB_USERNAME }}/my_app:latest 
+          
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:latest
