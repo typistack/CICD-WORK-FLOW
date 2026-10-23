@@ -1,20 +1,17 @@
-name: Build and Publish Docker Image
+name: Docker Build Workflow
 
 on:
   push:
-    branch:
+    branches:
       - main
 
 jobs:
-  docker-bild:
-    runs-on: ubantu-latest
+  docker-build:
+    runs-on: ubuntu-latest
 
-    setps:
-      - name: checkout code 
+    steps:
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set Up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build dcoker Image
-      - run: docker build -t my_app:0.0.1 .        
+      - name: Build Docker Image
+        run: docker build -t broker-grow:0.0.1 .
