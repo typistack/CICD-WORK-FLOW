@@ -36,7 +36,7 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:latest
   deploy-to-ec2:
-    need: docker-build
+    needs: docker-build
     runs-on: ubuntu-latest
 
     steps: 
