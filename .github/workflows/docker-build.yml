@@ -13,29 +13,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: login to docker hub
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }} 
-          password: ${{ secrets.DOCKERHUB_TOKEN }}    
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com
 
       - name: Build Docker Image
-        if: success()
         run: |
-          docker build \
-            -t my_app:${{ github.sha }} \
-            -t my_app:latest .
+          docker build -t my_app .
 
-      - name: push Docker Image
+      - name: Tag and Push Docker Image
         run: |
-          docker tag my_app:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/my_app:${{ github.sha }} 
-          docker tag my_app:latest ${{ secrets.DOCKERHUB_USERNAME }}/my_app:latest 
-          
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:${{ github.sha }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/my_app:latest
+          docker tag my_app:latest 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com/my_app:latest
+          docker push 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com/my_app:latest
+
   deploy-to-ec2:
     needs: docker-build
     runs-on: ubuntu-latest
@@ -43,21 +40,27 @@ jobs:
     steps: 
       - name: Deploy-to-ec2
         env:
-          EC2_HOST: ${{secrets.EC2_HOST}}
-          EC2_USER: ${{secrets.EC2_USER}}
-          EC2_SSH_KEY: ${{secrets.EC2_SSH_KEY}}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
         run: |
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/typistack
           chmod 600 ~/.ssh/typistack
           
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/typistack $EC2_USER@$EC2_HOST '
-          docker pull typistack/my_app:latest &&
-          docker stop my_app || true
-          docker rm my_app || true
-          docker run -d --name my_app --restart unless-stopped -p 3000:3000 typistack/my_app:latest
-          
-           '
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/typistack $EC2_USER@$EC2_HOST "
+            export AWS_ACCESS_KEY_ID='$AWS_ACCESS_KEY_ID'
+            export AWS_SECRET_ACCESS_KEY='$AWS_SECRET_ACCESS_KEY'
+
+            aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com
+            docker pull 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com/my_app:latest
+            docker stop my_app || true
+            docker rm my_app || true
+            docker run -d --name my_app --restart unless-stopped -p 3000:3000 142822702812.dkr.ecr.ap-southeast-2.amazonaws.com/my_app:latest
+          "
+
 
 
