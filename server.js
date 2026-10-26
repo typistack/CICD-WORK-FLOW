@@ -36,7 +36,7 @@ const sendJSON = (res, status, message, data = null) => {
 // ── 1. Home / Welcome ────────────────────────────────────────────────────────
 // GET /
 app.get("/", (req, res) => {
-  sendJSON(res, 200, "🚀 Server is running! Welcome to Simple Node.js API", {
+  sendJSON(res, 200, "🚀 hi virang acharya  Server is running! Welcome to Simple Node.js API", {
     version: "1.0.0",
     endpoints: {
       home:           "GET  /",
